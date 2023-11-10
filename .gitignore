@@ -1,0 +1,10 @@
+.build
+.mbed
+projectfiles
+*.py*
+mbed-os
+BUILD
+
+acan2517fd
+serialbridge
+mdc_client

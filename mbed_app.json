@@ -1,0 +1,24 @@
+{
+    "config": {
+        "mbed_pre": {
+            "help": "Macro",
+            "macro_name": "MBED",
+            "value": 0
+        },
+        "mbed_acan2517fd": {
+            "help": "Macro",
+            "macro_name": "MBED_SB",
+            "value": 0
+        },
+        "sb_canfd": {
+            "help": "Macro",
+            "macro_name": "SB_CANFD",
+            "value": 0
+        }
+    },
+    "target_overrides": {
+        "*": {
+            "target.printf_lib": "std"
+        }
+    }
+}

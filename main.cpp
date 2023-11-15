@@ -33,6 +33,11 @@ MDCClient mdc_client(&serial, 0);
 
 InterruptIn canfd_int(SPI_INT);
 
+void canfd_callback()
+{
+    dev_can.isr_poll_core();
+}
+
 static uint32_t gUpdateDate = 0;
 static uint32_t gSentDate = 0;
 
@@ -65,6 +70,9 @@ int main() {
     printf("Configuration error 0x%x\n\r", errorCode0);
   }
 
+  // initialize interruption
+  canfd_int.fall(canfd_callback);
+
   setting_struct_t mdc_settings = {OperatorMode::NO_OPERATOR,
                                    EncoderType::VELOCITY,
                                    1.0,
@@ -84,7 +92,7 @@ int main() {
 
   while (true) {
     if (getMillisecond() - gUpdateDate > 40) {
-      dev_can.poll();
+    //   dev_can.poll();
       serial.update();
       if (mdc_client.update()) {
         //  toggle led

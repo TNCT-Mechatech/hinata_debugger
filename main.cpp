@@ -31,12 +31,7 @@ CANSerialBridge serial(&dev_can);
 
 MDCClient mdc_client(&serial, 0);
 
-InterruptIn canfd_int(SPI_INT);
-
-void canfd_callback()
-{
-    dev_can.isr_poll_core();
-}
+DigitalIn canfd_int(SPI_INT);
 
 static uint32_t gUpdateDate = 0;
 static uint32_t gSentDate = 0;
@@ -45,23 +40,13 @@ int main() {
   timer.start();
 
   //  set up
-  ACAN2517FDSettings settings(ACAN2517FDSettings::OSC_4MHz, 125UL * 1000UL,
-                              DataBitRateFactor::x8);
+  ACAN2517FDSettings settings(ACAN2517FDSettings::OSC_4MHz, 500UL * 1000UL,
+                              DataBitRateFactor::x2);
 
   settings.mRequestedMode = ACAN2517FDSettings::NormalFD;
 
   settings.mDriverTransmitFIFOSize = 4;
   settings.mDriverReceiveFIFOSize = 3;
-
-  settings.mBitRatePrescaler = 1;
-  //  Arbitation Bit Rate
-  settings.mArbitrationPhaseSegment1 = 255;
-  settings.mArbitrationPhaseSegment2 = 64;
-  settings.mArbitrationSJW = 64;
-  //  Data Bit Rate
-  settings.mDataPhaseSegment1 = 31;
-  settings.mDataPhaseSegment2 = 8;
-  settings.mDataSJW = 8;
 
   const uint32_t errorCode0 = dev_can.begin(settings);
   if (errorCode0 == 0) {
@@ -70,10 +55,7 @@ int main() {
     printf("Configuration error 0x%x\n\r", errorCode0);
   }
 
-  // initialize interruption
-  canfd_int.fall(canfd_callback);
-
-  setting_struct_t mdc_settings = {OperatorMode::NO_OPERATOR,
+  setting_struct_t mdc_settings = {OperatorMode::MD_OPERATOR,
                                    EncoderType::VELOCITY,
                                    1.0,
                                    false,
@@ -86,13 +68,18 @@ int main() {
                                    0};
 
   for (int i = 0; i < 4; i++) {
-    mdc_client.update_setting(0, mdc_settings);
+    mdc_client.update_setting(i, mdc_settings);
+    mdc_client.set_target(i, 0.4);
     wait_us(1000 * 500);
   }
 
   while (true) {
+    if (!canfd_int) {
+      dev_can.isr_poll_core();
+    }
+
     if (getMillisecond() - gUpdateDate > 40) {
-    //   dev_can.poll();
+      //   dev_can.poll();
       serial.update();
       if (mdc_client.update()) {
         //  toggle led
@@ -104,6 +91,9 @@ int main() {
 
     if (getMillisecond() - gSentDate > 100) {
       //  send target values
+      for (int i = 0; i < 4; i++) {
+        mdc_client.set_target(0, 0.0);
+      }
       mdc_client.send_target();
 
       gSentDate = getMillisecond();
